@@ -1,44 +1,57 @@
 <?php
-// Connect to the MySQL database
-$host = "localhost";
-$username = "username";
-$password = "password";
-$dbname = "database_name";
 
-$conn = mysqli_connect($host, $username, $password, $dbname);
+// Start a session
+session_start();
 
-// Check connection
-if (!$conn) {
-  die("Connection failed: " . mysqli_connect_error());
+// Check if the user is already logged in
+if (isset($_SESSION['username'])) {
+  // If the user is already logged in, redirect them to the control panel page
+  header('Location: control-panel.php');
+  exit;
 }
 
-// Check if the login form has been submitted
-if (isset($_POST["submit"])) {
-  // Get the entered username and password
-  $username = $_POST["username"];
-  $password = $_POST["password"];
+// Check if the user has submitted the login form
+if (isset($_POST['username']) && isset($_POST['password'])) {
+  // Get the username and password from the form
+  $username = $_POST['username'];
+  $password = $_POST['password'];
 
-  // Check if the username and password are correct
-  $sql = "SELECT * FROM users WHERE username = '$username' AND password = '$password'";
-  $result = mysqli_query($conn, $sql);
+  // Connect to the database
+  $db = new PDO('mysql:host=localhost;dbname=database_name', 'username', 'password');
 
-  if (mysqli_num_rows($result) > 0) {
-    // Login successful, redirect to the control panel page
-    header("Location: control_panel.php");
+  // Prepare a SQL statement to select the user with the given username and password
+  $stmt = $db->prepare('SELECT * FROM users WHERE username = :username AND password = :password');
+  $stmt->execute(array(
+    ':username' => $username,
+    ':password' => $password
+  ));
+
+  // Fetch the user data
+  $user = $stmt->fetch();
+
+  // Check if a user was found
+  if ($user) {
+    // If a user was found, log them in by storing their username in the session
+    $_SESSION['username'] = $username;
+
+    // Redirect the user to the control panel page
+    header('Location: control-panel.php');
+    exit;
   } else {
-    // Login failed, display an error message
-    echo "Invalid username or password";
+    // If no user was found, display an error message
+    $error = 'Invalid username or password';
   }
 }
+
 ?>
 
-<!-- HTML for the login form -->
-<form method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
-  <label for="username">Username:</label>
-  <input type="text" name="username" id="username">
-  <br>
-  <label for="password">Password:</label>
-  <input type="password" name="password" id="password">
-  <br>
-  <input type="submit" name="submit" value="Login">
+<!-- HTML login form -->
+<form method="post">
+  <label for="username">Username:</label><br>
+  <input type="text" name="username" id="username"><br>
+  <label for="password">Password:</label><br>
+  <input type="password" name="password" id="password"><br><br>
+  <input type="submit" value="Log In">
 </form>
+
+<?php if (isset($error)) { echo $error; } ?>
