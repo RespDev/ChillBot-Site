@@ -1,2 +1,2 @@
 # Rcon Control Panel
-Chill Bot's official site
+Minecraft Server Staff Page
